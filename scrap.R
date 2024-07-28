@@ -57,10 +57,11 @@ df <- df |>
   dplyr::mutate(total = rowSums(across(where(is.numeric))))
 
 ## Inclui ordem e data
+hoje <- as.POSIXct(Sys.Date(), tz="America/Sao_Paulo")
 df <- df |> 
   dplyr::arrange(desc(ouro), desc(prata), desc(bronze), abrv) |> 
   dplyr::mutate(rank = 1:n(),
-                data = as.character(Sys.Date()))
+                data = as.character(hoje))
 
 # 2. Incremento da série ##########
 ## Lê o arquivo histórico
