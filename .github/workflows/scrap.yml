@@ -3,12 +3,6 @@ name: Extração do quadro de medalhas
 on:
   schedule:
     - cron: "0 22 * * *"
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
 
 jobs:
   run-r-script:
