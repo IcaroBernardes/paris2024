@@ -2,7 +2,7 @@ name: Extração do quadro de medalhas
 
 on:
   schedule:
-    - cron: "47 21 * * *"
+    - cron: "0 22 * * *"
   push:
     branches:
       - main
