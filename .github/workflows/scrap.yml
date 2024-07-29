@@ -2,7 +2,7 @@ name: Extração do quadro de medalhas
 
 on:
   schedule:
-    - cron: "0 22 * * *"
+    - cron: "0 0 * * *"
 
 jobs:
   run-r-script:
