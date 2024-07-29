@@ -1,9 +1,12 @@
 # 0. Setup inicial ##########
 ## Carrega bibliotecas
-library(httr2)
-library(xml2)
-library(rvest)
 library(dplyr)
+library(httr2)
+library(jsonlite)
+library(purrr)
+library(rvest)
+library(tidyr)
+library(xml2)
 
 ## Define URL a ser extraída e um user-agent que simula um navegador
 url <- "https://olympics.com/pt/paris-2024/medalhas"
@@ -19,56 +22,59 @@ resp <- httr2::request(url) |>
 page <- httr2::resp_body_html(resp)
 
 ## Extrai a seção da página que contém os resultados
-divList <- page |> 
-  rvest::html_element('div[data-test-id]')
+jsonData <- page |> 
+  rvest::html_element('script#__NEXT_DATA__') |> 
+  rvest::html_text() |> 
+  jsonlite::fromJSON()
 
-## Extrai os resultados
-abbrev <- divList |> 
-  rvest::html_elements('.emotion-srm-5xu01z') |> 
-  rvest::html_text()
-name <- divList |> 
-  rvest::html_elements('.emotion-srm-uu3d5n') |> 
-  rvest::html_text()
-first <- divList |> 
-  rvest::html_elements('.emotion-srm-81g9w1:nth-child(2)') |> 
-  rvest::html_text()
-second <- divList |> 
-  rvest::html_elements('.emotion-srm-81g9w1:nth-child(3)') |> 
-  rvest::html_text()
-third <- divList |> 
-  rvest::html_elements('.emotion-srm-81g9w1:nth-child(4)') |> 
-  rvest::html_text()
+## Extrai a tabela de medalhas
+allData <- jsonData[["props"]][["pageProps"]][["initialMedals"]][["medalStandings"]][["medalsTable"]]
 
-## Reconstrói a base
-df <- dplyr::tibble(
-  abrv = abbrev,
-  pais = name,
-  ouro = first,
-  prata = second,
-  bronze = third
-)
+## Lista as medalhas obtidas por cada país
+allMedals <- allData$disciplines |> 
+  purrr::map(\(country) {
+    
+    countryMedals <- country |> 
+      tidyr::unnest(cols = medalWinners) |> 
+      dplyr::select(disciplineCode, name, eventCategory, medalType,
+                    competitorDisplayName, date) |> 
+      dplyr::rename(
+        esporte_codigo = disciplineCode,
+        esporte_nome = name,
+        evento_genero = eventCategory,
+        evento_medalha = medalType,
+        atleta_nome = competitorDisplayName,
+        data = date
+      )
+    
+  })
 
-## Inclui total de medalhas
-df <- df |> 
-  dplyr::mutate(across(
-    .cols = -c(abrv, pais),
-    .fns = as.numeric
-  )) |> 
-  dplyr::mutate(total = rowSums(across(where(is.numeric))))
+## Inclui nome e sigla do país
+tidyData <- allData |> 
+  dplyr::select(organisation, description) |> 
+  dplyr::rename(
+    pais_abrev = organisation,
+    pais_nome = description
+  ) |> 
+  dplyr::mutate(data = allMedals) |> 
+  tidyr::unnest(cols = data)
 
-## Inclui ordem e data
-hoje <- as.POSIXct(Sys.Date(), tz="America/Sao_Paulo")
-df <- df |> 
-  dplyr::arrange(desc(ouro), desc(prata), desc(bronze), abrv) |> 
-  dplyr::mutate(rank = 1:n(),
-                data = as.character(hoje))
-
-# 2. Incremento da série ##########
-## Lê o arquivo histórico
-old <- read.csv("data/medals.csv")
-
-## Une os bancos
-df <- dplyr::bind_rows(df, old)
+## Traduz gênero do evento e medalha
+tidyData <- tidyData |> 
+  dplyr::mutate(
+    evento_genero = case_match(
+      evento_genero,
+      "Men" ~ "Homens",
+      "Women" ~ "Mulheres",
+      "Mixed" ~ "Misto"
+    ),
+    evento_medalha = case_match(
+      evento_medalha,
+      "ME_GOLD" ~ "Ouro",
+      "ME_SILVER" ~ "Prata",
+      "ME_BRONZE" ~ "Bronze"
+    )
+  )
 
 ## Salva os dados
-write.csv(df, "data/medals.csv", row.names = FALSE)
+write.csv(tidyData, "data/medals.csv", row.names = FALSE)
