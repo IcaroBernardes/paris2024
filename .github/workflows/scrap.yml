@@ -22,7 +22,7 @@ jobs:
 
     - name: Install R packages
       run: |
-        Rscript -e 'install.packages(c("httr2", "xml2", "rvest", "dplyr"))'
+        Rscript -e 'install.packages(c("httr2", "xml2", "rvest", "dplyr", "jsonlite", "purrr", "tidyr"))'
 
     - name: Run R script
       run: |
