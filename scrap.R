@@ -43,8 +43,8 @@ allMedals <- allData$disciplines |>
         esporte_nome = name,
         evento_genero = eventCategory,
         evento_medalha = medalType,
-        atleta_nome = competitorDisplayName,
-        data = date
+        evento_atleta = competitorDisplayName,
+        evento_data = date
       )
     
   })
@@ -53,7 +53,7 @@ allMedals <- allData$disciplines |>
 tidyData <- allData |> 
   dplyr::select(organisation, description) |> 
   dplyr::rename(
-    pais_abrev = organisation,
+    pais_codigo = organisation,
     pais_nome = description
   ) |> 
   dplyr::mutate(data = allMedals) |> 
