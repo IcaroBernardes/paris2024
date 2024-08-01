@@ -76,5 +76,7 @@ tidyData <- tidyData |>
     )
   )
 
-## Salva os dados
-write.csv(tidyData, "data/medals.csv", row.names = FALSE)
+## Salva os dados atualizados
+tidyData |> 
+  dplyr::distinct() |> 
+  write.csv("data/medals.csv", row.names = FALSE)
