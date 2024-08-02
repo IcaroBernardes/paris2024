@@ -6,21 +6,11 @@ library(glue)
 library(gt)
 library(gtExtras)
 library(htmltools)
-library(junebug)
 library(stringr)
 library(webshot2)
 
 ## Carrega dados brutos
 rawData <- read.csv("data/medalTable.csv")
-
-## Registra as fontes do Font Awesome
-junebug::font_hoist("Font Awesome 6 Brands")
-
-## Identifica como as fontes foram registradas
-fonts_register <- systemfonts::registry_fonts()
-
-## Define a família das fontes
-brandsFont <- "Font Awesome 6 Brands Regular"
 
 # 1. Processamento dos dados ##########
 ## Filtra dados do dia mais recente
@@ -32,8 +22,12 @@ BRtop <- "BRA" %in% workData$pais_codigo[1:11]
 
 ## Filtra os dados do Brasil e top 10
 workData <- workData |> 
-  dplyr::select(-rank) |> 
   dplyr::filter(pais_codigo == "BRA" | row_number() <= 10)
+
+## Define o texto do ranking
+workData <- workData |> 
+  dplyr::mutate(rank = glue::glue("{rank}º")) |> 
+  dplyr::relocate(rank, .before = 1)
 
 ## Associa bandeiras aos nomes dos países usando estrutura HTML
 workData <- workData|> 
@@ -83,35 +77,39 @@ fimDia <- stringr::str_replace_all(fimDia, meses)
 ## Texto de informação do dia de coleta do dado
 numDias <- n_distinct(rawData$evento_data)
 diaOlimp <- glue::glue("<div>Resultados até {fimDia}</div>
-                       Após <strong>{numDias}</strong> dias de Jogos Olimpícos") |> HTML()
-
-## Função para inserir os glifos do Font Awesome
-faDecoder <- function(code) {
-  span(code, style = glue::glue("font-family:\"{brandsFont}\";"))
-}
+                       Após <strong>{numDias}</strong> dias de Jogos Olimpícos") |> 
+  HTML()
 
 ## Texto de atribuição dos dados e tabela
-atrib <- tagList(
-  div("Dados e bandeiras extraídos do site oficial dos Jogos Olímpicos Paris 2024"),
+atrib <- div(
+  div(
+    id = "source",
+    "Dados e bandeiras extraídos do site oficial dos Jogos Olímpicos Paris 2024"
+  ),
   hr(),
   div("Tabela produzida por Ícaro Bernardes"),
-  faDecoder('\uf099 \uf16d \uf08c'),
-  ' - @IcaroBSC | ',
-  faDecoder('\uf09b'),
-  ' - @IcaroBernardes'
-)
+  div(
+    id = "atrib",
+    HTML(local_image("fa-glyphs/x.svg")),
+    HTML(local_image("fa-glyphs/instagram.svg")),
+    HTML(local_image("fa-glyphs/linkedin.svg")),
+    ' - @IcaroBSC',
+    HTML(local_image("fa-glyphs/github.svg")),
+    ' - @IcaroBernardes'
+  )
+) |> 
+  as.character()
 
 ## Gera a tabela
 gtTable <- workData |>
   gt() |> 
   tab_header("Quadro de medalhas", diaOlimp) |> 
-  tab_footnote(atrib) |> 
+  tab_footnote(html(atrib)) |> 
   fmt_markdown() |>
-  cols_align(
-    align = "center",
-    columns = -pais_nome
-  ) |> 
+  cols_align(align = "center", columns = -pais_nome) |> 
+  cols_align(align = "right", columns = rank) |> 
   cols_label(
+    rank = "",
     pais_nome = "",
     Ouro = html(labelMedal("Ouro","🥇")),
     Prata = html(labelMedal("Prata","🥈")),
@@ -119,7 +117,7 @@ gtTable <- workData |>
   ) |> 
   cols_width(
     Ouro:Bronze ~ px(70),
-    pais_nome ~ px(300)
+    pais_nome ~ px(250)
   ) |> 
   opt_css(
     css = "
@@ -144,6 +142,18 @@ gtTable <- workData |>
     }
     .gt_footnote {
       padding-top: 10px !important;
+      font-size: 15px !important;
+    }
+    #source {
+      font-size: 10px !important;
+    }
+    .gt_footnote img {
+      width: 17px;
+    }
+    #atrib {
+      display: flex;
+      gap: 5px;
+      align-items: center;
     }
     "
   ) |> 
