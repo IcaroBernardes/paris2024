@@ -2,7 +2,7 @@ name: Atualização da tabela
 
 on:
   workflow_run:
-    workflows: 
+    workflows: [Limpeza dos dados]
     types:
       - completed
 
@@ -19,18 +19,22 @@ jobs:
 
     - name: Install R packages
       run: |
-        Rscript -e 'install.packages(c("dplyr", "ggplot2", "glue", "gt", "gtExtras", "htmltools", "junebug", "stringr", "webshot2"))'
+        Rscript -e 'install.packages(c("dplyr", "ggplot2", "glue", "gt", "gtExtras", "htmltools", "stringr", "webshot2"))'
+    
     - name: Run R script
       run: |
         Rscript tabela.R
+      
     - name: Configure Git
       run: |
         git config --global user.name 'github-actions[bot]'
         git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+        
     - name: Commit changes
       run: |
         git add -A
         git commit -m "Tabela gerada - $(date +'%Y-%m-%d %H:%M:%S')"
+        
     - name: Push changes
       env:
         GH_TOKEN: ${{ secrets.GH_TOKEN }}
