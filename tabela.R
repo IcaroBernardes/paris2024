@@ -54,6 +54,7 @@ if (!BRtop) {
     ))
 }
 
+# 2. Produção da tabela ##########
 ## Identifica a linha com dados do Brasil
 BRline <- stringr::str_detect(workData$pais_nome, "Brasil") |> which()
 
